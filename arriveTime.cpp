@@ -1,158 +1,227 @@
-#include <bits/stdc++.h>
+#include <stdio.h>
+#include <stdlib.h>
+#define MAX 10
 
-using namespace std;
+void roundRobin(int burst_time[], int arrival_time[], int no_of_processes, int quantum);
+void drawGanttChart(int burst_time[], int arrival_time[], int no_of_processes, int quantum);
 
-struct Process
+int main(void)
 {
-    int pid;
-    int arrivalTime;
-    int burstTime;
-    int burstTimeRemaining; // the amount of CPU time remaining after each execution
-    int completionTime;
-    int turnaroundTime;
-    int waitingTime;
-    bool isComplete;
-    bool inQueue;
-};
+    int no_of_processes, bt[MAX], at[MAX], quantum;
 
-/*
- * At every time quantum or when a process has been executed before the time quantum,
- * check for any new arrivals and push them into the queue
-*/
-void checkForNewArrivals(Process processes[], const int n, const int currentTime, queue<int> &readyQueue)
-{
-    for (int i = 0; i < n; i++)
+    printf("Enter the number of processes (Max 10): ");
+    scanf("%d", &no_of_processes);
+
+    printf("\nEnter the burst time and arrival time of each process:\n");
+    for (int i = 0; i < no_of_processes; ++i)
     {
-        Process p = processes[i];
-        // checking if any processes has arrived
-        // if so, push them in the ready Queue.
-        if (p.arrivalTime <= currentTime && !p.inQueue && !p.isComplete)
-        {
-            processes[i].inQueue = true;
-            readyQueue.push(i);
-        }
-    }
-}
+        printf("Enter burst time of process %d: ", i + 1);
+        scanf("%d", &bt[i]);
 
-/*
- * Context switching takes place at every time quantum
- * At every iteration, the burst time of the processes in the queue are handled using this method
-*/
-void updateQueue(Process processes[], const int n, const int quantum, queue<int> &readyQueue, int &currentTime, int &programsExecuted)
-{
-    int i = readyQueue.front();
-    readyQueue.pop();
-
-    // if the process is going to be finished executing, 
-    // ie, when it's remaining burst time is less than time quantum
-    // mark it completed and increment the current time
-    // and calculate its waiting time and turnaround time
-    if (processes[i].burstTimeRemaining <= quantum)
-    {
-        processes[i].isComplete = true;
-        currentTime += processes[i].burstTimeRemaining;
-        processes[i].completionTime = currentTime;
-        processes[i].waitingTime = processes[i].completionTime - processes[i].arrivalTime - processes[i].burstTime;
-        processes[i].turnaroundTime = processes[i].waitingTime + processes[i].burstTime;
-
-        if (processes[i].waitingTime < 0)
-            processes[i].waitingTime = 0;
-
-        processes[i].burstTimeRemaining = 0;
-
-        // if all the processes are not yet inserted in the queue,
-        // then check for new arrivals
-        if (programsExecuted != n)
-        {
-            checkForNewArrivals(processes, n, currentTime, readyQueue);
-        }
-    }
-    else
-    {
-        // the process is not done yet. But it's going to be pre-empted 
-        // since one quantum is used
-        // but first subtract the time the process used so far
-        processes[i].burstTimeRemaining -= quantum;
-        currentTime += quantum;
-
-        // if all the processes are not yet inserted in the queue,
-        // then check for new arrivals
-        if (programsExecuted != n)
-        {
-            checkForNewArrivals(processes, n, currentTime, readyQueue);
-        }
-        // insert the incomplete process back into the queue
-        readyQueue.push(i);
-    }
-}
-
-/*
- * Just a function that outputs the result in terms of their PID.
-*/
-void output(Process processes[], const int n)
-{
-    double avgWaitingTime = 0;
-    double avgTurntaroundTime = 0;
-    // sort the processes array by processes.PID
-    sort(processes, processes + n, [](const Process &p1, const Process &p2)
-         { return p1.pid < p2.pid; });
-
-    for (int i = 0; i < n; i++)
-    {
-        cout << "Process " << processes[i].pid << ": Waiting Time: " << processes[i].waitingTime << " Turnaround Time: " << processes[i].turnaroundTime << endl;
-        avgWaitingTime += processes[i].waitingTime;
-        avgTurntaroundTime += processes[i].turnaroundTime;
-    }
-    cout << "Average Waiting Time: " << avgWaitingTime / n << endl;
-    cout << "Average Turnaround Time: " << avgTurntaroundTime / n << endl;
-}
-
-/* 
- * This function assumes that the processes are already sorted according to their arrival time
- */
-void roundRobin(Process processes[], int n, int quantum)
-{
-    queue<int> readyQueue;
-    readyQueue.push(0); // initially, pushing the first process which arrived first
-    processes[0].inQueue = true;
-  
-    int currentTime = 0; // holds the current time after each process has been executed
-    int programsExecuted = 0; // holds the number of programs executed so far
-
-    while (!readyQueue.empty())
-    {
-        updateQueue(processes, n, quantum, readyQueue, currentTime, programsExecuted);
-    }
-}
-
-int main()
-{
-    int n, quantum;
-
-    cout << "Enter the number of processes: ";
-    cin >> n;
-    cout << "Enter time quantum: ";
-    cin >> quantum;
-
-    Process processes[n + 1];
-
-    for (int i = 0; i < n; i++)
-    {
-        cout << "Enter arrival time and burst time of each process " << i + 1 << ": ";
-        cin >> processes[i].arrivalTime;
-        cin >> processes[i].burstTime;
-        processes[i].burstTimeRemaining = processes[i].burstTime;
-        processes[i].pid = i + 1;
-        cout << endl;
+        printf("Enter arrival time of process %d: ", i + 1);
+        scanf("%d", &at[i]);
     }
 
-    // stl sort in terms of arrival time
-    sort(processes, processes + n, [](const Process &p1, const Process &p2)
-         { return p1.arrivalTime < p2.arrivalTime; });
+    printf("\nEnter the time quantum: ");
+    scanf("%d", &quantum);
 
-    roundRobin(processes, n, quantum);
+    printf("\n");
 
-    output(processes, n);
+    roundRobin(bt, at, no_of_processes, quantum);
+
+    printf("\n\n");
 
     return 0;
+}
+
+void drawGanttChart(int burst_time[], int arrival_time[], int no_of_processes, int quantum)
+{
+    int remaining_time[MAX];
+    int total = 0;
+    int remain = no_of_processes;
+    int process = 0;
+    int time = 0;
+
+    printf("\nGantt Chart:\n\n");
+
+    for (int i = 0; i < no_of_processes; ++i)
+    {
+        remaining_time[i] = burst_time[i];
+    }
+
+    while (remain != 0)
+    {
+        int executed = 0;
+
+        // Run this process only if it has already arrived and still needs CPU time.
+        if (arrival_time[process] <= time && remaining_time[process] > 0)
+        {
+            printf("|P%d ", process + 1);
+
+            if (remaining_time[process] <= quantum)
+            {
+                time += remaining_time[process];
+                remaining_time[process] = 0;
+                --remain;
+            }
+            else
+            {
+                remaining_time[process] -= quantum;
+                time += quantum;
+            }
+
+            executed = 1;
+        }
+
+        if (!executed)
+        {
+            int found = 0;
+            int next_arrival = 1000000000;
+
+            // Check whether any not-finished process is ready at current time.
+            // If none are ready, track the earliest future arrival.
+            for (int i = 0; i < no_of_processes; ++i)
+            {
+                if (remaining_time[i] > 0)
+                {
+                    if (arrival_time[i] <= time)
+                    {
+                        found = 1;
+                    }
+                    else if (arrival_time[i] < next_arrival)
+                    {
+                        next_arrival = arrival_time[i];
+                    }
+                }
+            }
+
+            if (!found && next_arrival != 1000000000)
+            {
+                // CPU is idle until the next process arrives.
+                printf("|IDLE ");
+                time = next_arrival;
+            }
+        }
+
+        if (process == no_of_processes - 1)
+        {
+            process = 0;
+        }
+        else
+        {
+            ++process;
+        }
+    }
+
+    printf("|\n");
+
+    total = time;
+    int print_time = 0;
+    while (print_time <= total)
+    {
+        printf("%d\t", print_time);
+        print_time += quantum;
+    }
+
+    if ((print_time - quantum) != total)
+    {
+        printf("%d", total);
+    }
+
+    printf("\n\n");
+}
+
+void roundRobin(int burst_time[], int arrival_time[], int no_of_processes, int quantum)
+{
+    int remaining_time[MAX];
+    int waiting_time = 0;
+    int turnaround_time = 0;
+    int completion_time[MAX] = {0};
+
+    for (int i = 0; i < no_of_processes; ++i)
+    {
+        remaining_time[i] = burst_time[i];
+    }
+
+    int process = 0;
+    int time = 0;
+    int remain = no_of_processes;
+
+    printf("Process No.\t\tWaiting Time\tTurnaround Time\n");
+
+    while (remain != 0)
+    {
+        int flag = 0;
+
+        // A process can execute only after its arrival time.
+        if (arrival_time[process] <= time && remaining_time[process] > 0)
+        {
+            if (remaining_time[process] <= quantum)
+            {
+                time += remaining_time[process];
+                remaining_time[process] = 0;
+                flag = 1;
+            }
+            else
+            {
+                time += quantum;
+                remaining_time[process] -= quantum;
+            }
+        }
+        else
+        {
+            int found = 0;
+            int next_arrival = 1000000000;
+
+            // If no process is ready now, jump the clock to the nearest arrival.
+            for (int i = 0; i < no_of_processes; ++i)
+            {
+                if (remaining_time[i] > 0)
+                {
+                    if (arrival_time[i] <= time)
+                    {
+                        found = 1;
+                    }
+                    else if (arrival_time[i] < next_arrival)
+                    {
+                        next_arrival = arrival_time[i];
+                    }
+                }
+            }
+
+            if (!found && next_arrival != 1000000000)
+            {
+                // This avoids getting stuck when all remaining processes arrive later.
+                time = next_arrival;
+            }
+        }
+
+        if (flag == 1)
+        {
+            int tat = time - arrival_time[process];
+            int wt = tat - burst_time[process];
+
+            completion_time[process] = time;
+            --remain;
+
+            printf("Process[%d]\t\t\t%d\t\t\t\t%d\n", process + 1, wt, tat);
+
+            waiting_time += wt;
+            turnaround_time += tat;
+        }
+
+        if (process == no_of_processes - 1)
+        {
+            process = 0;
+        }
+        else
+        {
+            ++process;
+        }
+    }
+
+    drawGanttChart(burst_time, arrival_time, no_of_processes, quantum);
+
+    printf("Average turnaround time: %.2f\n", (float)turnaround_time / no_of_processes);
+    printf("Average waiting time: %.2f", (float)waiting_time / no_of_processes);
 }
