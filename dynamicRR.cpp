@@ -90,6 +90,7 @@ void drawGanttChart(int burst_time[], int arrival_time[], int no_of_processes, i
                     }
                     else if (arrival_time[i] < next_arrival)
                     {
+
                         next_arrival = arrival_time[i];
                     }
                 }
@@ -185,6 +186,7 @@ void roundRobin(int burst_time[], int arrival_time[], int no_of_processes, int q
                     else if (arrival_time[i] < next_arrival)
                     {
                         next_arrival = arrival_time[i];
+                        // Keep the earliest upcoming arrival among unfinished processes.
                     }
                 }
             }

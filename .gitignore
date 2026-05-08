@@ -1,0 +1,12 @@
+.vscode
+
+# Presentation files
+*.ppt
+*.pptx
+
+# Compiled outputs
+staticRR
+dynamicRR
+tempCodeRunnerFile
+*.out
+*.o
