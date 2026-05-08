@@ -3,6 +3,7 @@
 # Presentation files
 *.ppt
 *.pptx
+*.pdf
 
 # Compiled outputs
 staticRR
